@@ -3,279 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Pro - Voice & Gifts</title>
+    <title>Telegram 100% Clone</title>
     <style>
         :root {
-            --tg-blue: #24A1DE;
-            --tg-bg: #0e1621;
-            --tg-dark: #17212b;
-            --tg-msg-out: #2b5278;
-            --tg-msg-in: #182533;
-            --tg-stars: #f9d949;
+            --bg: #0e1621; --dark: #17212b; --blue: #24A1DE;
+            --msg-in: #182533; --msg-out: #2b5278; --text: #ffffff;
+            --gray: #8e979e; --stars: #f9d949;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        body {
-            margin: 0; font-family: -apple-system, system-ui, Roboto, sans-serif;
-            background-color: var(--tg-bg); color: white; overflow: hidden;
-            display: flex; flex-direction: column; height: 100vh;
-        }
-
-        /* Header */
+        /* HEADER */
         header {
-            background: var(--tg-dark); padding: 10px 15px;
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10;
+            background: var(--dark); padding: 10px 15px; display: flex; align-items: center;
+            justify-content: space-between; border-bottom: 1px solid #232e3c; z-index: 10;
         }
-        .avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #50a2e3, #24a1de); border-radius: 50%; }
-        .star-badge {
-            background: rgba(249, 217, 73, 0.15); border: 1px solid var(--tg-stars);
-            padding: 5px 12px; border-radius: 20px; color: var(--tg-stars);
-            font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
-        .star-badge:active { transform: scale(1.1); }
-
-        /* Chat Area */
-        #chat {
-            flex: 1; overflow-y: auto; padding: 15px;
-            background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-attachment: fixed; display: flex; flex-direction: column;
+        .user-meta { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #62bbed, #24a1de); display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .star-balance {
+            background: rgba(249, 217, 73, 0.1); border: 1px solid var(--stars);
+            padding: 5px 12px; border-radius: 20px; color: var(--stars); font-weight: bold; cursor: pointer;
         }
 
-        .bubble {
-            max-width: 75%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px;
-            font-size: 15px; line-height: 1.4; position: relative;
-            animation: fadeIn 0.2s ease;
-        }
-        .out { background: var(--tg-msg-out); align-self: flex-end; border-bottom-right-radius: 4px; }
-        .in { background: var(--tg-msg-in); align-self: flex-start; border-bottom-left-radius: 4px; }
+        /* SCREENS */
+        .screen { display: none; flex: 1; overflow-y: auto; flex-direction: column; position: relative; }
+        .active-screen { display: flex; }
 
-        /* Voice Message UI */
-        .voice-player { display: flex; align-items: center; gap: 10px; min-width: 180px; }
-        .play-btn { width: 30px; height: 30px; background: white; border-radius: 50%; display: flex; 
-                    align-items: center; justify-content: center; color: var(--tg-msg-out); cursor: pointer; }
-        .wave { flex: 1; height: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; position: relative; }
-        .wave-fill { height: 100%; background: white; width: 0%; }
-
-        /* Input Bar */
-        .input-panel {
-            background: var(--tg-dark); padding: 8px 12px; display: flex; align-items: center; gap: 12px;
+        /* CHAT VIEW */
+        #chat-screen { background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; background-blend-mode: overlay; }
+        #messages-container { flex: 1; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
+        .bubble { 
+            max-width: 80%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 15px; line-height: 1.4;
+            position: relative; animation: slideIn 0.2s ease;
         }
-        .input-wrap {
-            flex: 1; background: var(--tg-bg); border-radius: 20px; padding: 8px 15px;
-            display: flex; align-items: center;
-        }
-        #msg-input { background: none; border: none; color: white; flex: 1; outline: none; font-size: 16px; }
-        
-        /* Recording Overlay */
-        #record-ui { display: none; flex: 1; align-items: center; color: #aaa; gap: 10px; }
-        .dot { width: 10px; height: 10px; background: red; border-radius: 50%; animation: blink 0.8s infinite; }
+        .bubble.in { background: var(--msg-in); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .bubble.out { background: var(--msg-out); align-self: flex-end; border-bottom-right-radius: 4px; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .mic-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; 
-                   background: none; border: none; color: var(--tg-blue); font-size: 24px; cursor: pointer; }
-        .mic-btn.active { color: red; transform: scale(1.3); }
+        /* VOICE PLAYER */
+        .voice-msg { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+        .play-btn { width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--msg-out); cursor: pointer; }
+        .progress-container { flex: 1; height: 3px; background: rgba(255,255,255,0.2); position: relative; }
+        .progress-bar { height: 100%; background: white; width: 0%; }
 
-        /* Gifts Modal */
-        #modal {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
-            padding: 20px; backdrop-filter: blur(5px);
+        /* INPUT AREA */
+        .input-bar { background: var(--dark); padding: 10px; display: flex; align-items: center; gap: 10px; }
+        .input-bar input { flex: 1; background: var(--bg); border: none; padding: 10px 15px; border-radius: 20px; color: white; outline: none; }
+        .mic-btn { font-size: 24px; cursor: pointer; transition: 0.2s; color: var(--blue); border: none; background: none; }
+        .mic-btn.recording { color: #f44336; transform: scale(1.3); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* PROFILE */
+        .profile-hero { background: var(--dark); padding: 30px 20px; text-align: center; }
+        .profile-avatar-big { width: 90px; height: 90px; background: linear-gradient(135deg, #ef7cc7, #9e59eb); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+        .gifts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
+        .gift-slot { background: var(--dark); border-radius: 12px; padding: 10px; text-align: center; border: 1px solid #232e3c; }
+        .gift-slot img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+
+        /* STORE MODAL */
+        #store { 
+            position: fixed; bottom: -100%; left: 0; width: 100%; height: 75%; background: var(--dark); 
+            z-index: 100; border-radius: 20px 20px 0 0; transition: 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); padding: 20px;
         }
-        .gift-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .gift-card { background: var(--tg-dark); border-radius: 15px; padding: 15px; text-align: center; border: 1px solid #333; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .store-item { background: var(--bg); border-radius: 15px; padding: 15px; text-align: center; border: 1px solid #333; cursor: pointer; }
+
+        /* NAV TAB BAR */
+        nav { background: var(--dark); display: flex; border-top: 1px solid #232e3c; padding: 8px 0; }
+        .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; color: var(--gray); font-size: 11px; gap: 4px; cursor: pointer; }
+        .nav-tab.active { color: var(--blue); }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div class="avatar"></div>
-            <div>
-                <b style="display: block;">Gemini Clone</b>
-                <span style="font-size: 13px; color: var(--tg-blue);">online</span>
-            </div>
-        </div>
-        <div class="star-badge" onclick="getStars()">⭐ <span id="stars-val">500</span></div>
-    </header>
-
-    <div id="chat">
-        <div class="bubble in">Привет! Это 100% копия. Зажми микрофон и запиши настоящий голос! 🎤</div>
-    </div>
-
-    <div class="input-panel">
-        <div style="font-size: 24px; cursor: pointer;" onclick="showGifts()">🎁</div>
-        <div class="input-wrap" id="normal-input">
-            <input type="text" id="msg-input" placeholder="Message">
-        </div>
-        <div id="record-ui">
-            <div class="dot"></div>
-            <span id="record-time">0:00</span>
-            <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
-                <div id="record-wave" style="height: 100%; background: red; width: 0%; transition: 0.1s;"></div>
-            </div>
-        </div>
-        <button class="mic-btn" id="mic-btn">🎤</button>
-    </div>
-
-    <div id="modal">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="margin: 0;">Gifts Store</h2>
-            <button onclick="hideGifts()" style="background:none; border:none; color:white; font-size: 24px;">✕</button>
-        </div>
-        <div class="gift-grid">
-            <div class="gift-card" onclick="buyGift('Gold Star', 250, 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png')">
-                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" width="80">
-                <p>Star</p><b style="color:var(--tg-stars)">250 ⭐</b>
-            </div>
-            <div class="gift-card" onclick="buyGift('Rocket NFT', 5000, 'https://cdn-icons-png.flaticon.com/512/1356/1356479.png')">
-                <img src="https://cdn-icons-png.flaticon.com/512/1356/1356479.png" width="80">
-                <p>Rocket</p><b style="color:var(--tg-stars)">5k ⭐</b>
-            </div>
+<header>
+    <div class="user-meta">
+        <div class="avatar">G</div>
+        <div>
+            <div style="font-weight: 600;" id="header-name">Gemini Chat</div>
+            <div style="font-size: 12px; color: var(--blue);" id="header-status">online</div>
         </div>
     </div>
+    <div class="star-balance" onclick="earnStars()">⭐ <span id="star-count">1000</span></div>
+</header>
 
-    <script>
-                let stars = 500;
-        let mediaRecorder;
-        let audioChunks = [];
-        let recordTimer;
-        let seconds = 0;
-        let currentAudio = null; // Для контроля текущего проигрывания
+<div id="chat-screen" class="screen active-screen">
+    <div id="messages-container">
+        <div class="bubble in">Привет! Это финальная версия. Попробуй записать голос и купить подарки!</div>
+    </div>
+    <div class="input-bar">
+        <div style="font-size: 24px; cursor: pointer;" onclick="openStore()">🎁</div>
+        <input type="text" id="text-input" placeholder="Message">
+        <button id="mic-btn" class="mic-btn">🎤</button>
+    </div>
+</div>
 
-        function getStars() {
-            stars += 5000;
-            document.getElementById('stars-val').innerText = stars;
-        }
+<div id="profile-screen" class="screen">
+    <div class="profile-hero">
+        <div class="profile-avatar-big">😎</div>
+        <h2 style="margin: 5px 0;">Developer Mode</h2>
+        <p style="color: var(--gray);">@ai_master_clone</p>
+    </div>
+    <div style="padding: 15px 15px 0; color: var(--gray); font-size: 13px; font-weight: bold;">MY GIFTS (<span id="gift-stat">0</span>)</div>
+    <div class="gifts-grid" id="profile-gifts">
+        </div>
+</div>
 
-        function showGifts() { document.getElementById('modal').style.display = 'block'; }
-        function hideGifts() { document.getElementById('modal').style.display = 'none'; }
+<div id="store">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin:0">Premium Gifts</h3>
+        <span onclick="closeStore()" style="cursor:pointer; font-size: 20px;">✕</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="store-item" onclick="buyGift('Golden Star', 500, 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png')">
+            <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" width="60">
+            <p>Star NFT</p><b style="color: var(--stars)">500 ⭐</b>
+        </div>
+        <div class="store-item" onclick="buyGift('Rocket', 2500, 'https://cdn-icons-png.flaticon.com/512/1356/1356479.png')">
+            <img src="https://cdn-icons-png.flaticon.com/512/1356/1356479.png" width="60">
+            <p>Rocket</p><b style="color: var(--stars)">2.5k ⭐</b>
+        </div>
+        <div class="store-item" onclick="buyGift('Diamond', 5000, 'https://cdn-icons-png.flaticon.com/512/3039/3039433.png')">
+            <img src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png" width="60">
+            <p>Gem</p><b style="color: var(--stars)">5k ⭐</b>
+        </div>
+    </div>
+</div>
+
+<nav>
+    <div class="nav-tab active" onclick="navTo('chat', this)">
+        <span>💬</span><span>Chats</span>
+    </div>
+    <div class="nav-tab" onclick="navTo('profile', this)">
+        <span>👤</span><span>Profile</span>
+    </div>
+</nav>
+
+<script>
+    let stars = 1000;
+    let gifts = [];
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    // СИСТЕМА ЗВЕЗД
+    function earnStars() {
+        stars += 5000;
+        document.getElementById('star-count').innerText = stars;
+        sfx(800);
+    }
+
+    // НАВИГАЦИЯ
+    function navTo(screen, el) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(screen + '-screen').classList.add('active-screen');
+        el.classList.add('active');
+        document.getElementById('header-name').innerText = screen === 'chat' ? 'Gemini Chat' : 'My Profile';
+    }
+
+    // МАГАЗИН
+    function openStore() { document.getElementById('store').style.bottom = '0'; }
+    function closeStore() { document.getElementById('store').style.bottom = '-100%'; }
+
+    function buyGift(name, price, img) {
+        if (stars < price) return alert("Недостаточно звезд!");
+        stars -= price;
+        document.getElementById('star-count').innerText = stars;
+        gifts.push({name, img});
         
-        function buyGift(name, price, img) {
-            if (stars < price) return alert("Нужно больше звезд!");
-            stars -= price;
-            document.getElementById('stars-val').innerText = stars;
-            const chat = document.getElementById('chat');
-            chat.innerHTML += `
-                <div class="bubble out" style="text-align:center; background: rgba(249,217,73,0.1); border: 1px solid var(--tg-stars);">
-                    <img src="${img}" width="100"><br>
-                    <b>${name} Gift</b><br>
-                    <small>Sent for ${price} stars</small>
-                </div>`;
-            hideGifts();
-            chat.scrollTop = chat.scrollHeight;
-        }
+        // В чат
+        const container = document.getElementById('messages-container');
+        const giftBubble = document.createElement('div');
+        giftBubble.className = 'bubble out';
+        giftBubble.style.textAlign = 'center';
+        giftBubble.innerHTML = `<img src="${img}" width="80"><br><b>${name}</b>`;
+        container.appendChild(giftBubble);
+        container.scrollTop = container.scrollHeight;
 
-        // --- РЕАЛЬНЫЕ ГОЛОСОВЫЕ С ФИКСОМ ВОСПРОИЗВЕДЕНИЯ ---
-        const micBtn = document.getElementById('mic-btn');
-        const recordUI = document.getElementById('record-ui');
-        const normalInput = document.getElementById('normal-input');
+        // В профиль
+        updateProfile();
+        closeStore();
+    }
 
-        micBtn.addEventListener('mousedown', startRecording);
-        micBtn.addEventListener('mouseup', stopRecording);
-        micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
-        micBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+    function updateProfile() {
+        const grid = document.getElementById('profile-gifts');
+        grid.innerHTML = '';
+        gifts.forEach(g => {
+            grid.innerHTML += `<div class="gift-slot"><img src="${g.img}"><div style="font-size:10px; margin-top:5px;">${g.name}</div></div>`;
+        });
+        document.getElementById('gift-stat').innerText = gifts.length;
+    }
 
-        async function startRecording() {
+    // ГОЛОСОВЫЕ (MediaRecorder API)
+    const micBtn = document.getElementById('mic-btn');
+    micBtn.onmousedown = micBtn.ontouchstart = async (e) => {
+        e.preventDefault();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = saveVoice;
+            mediaRecorder.start();
+            isRecording = true;
+            micBtn.classList.add('recording');
+        } catch(err) { alert("Микрофон недоступен"); }
+    };
 
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    renderVoiceMessage(audioUrl, seconds);
-                };
-
-                mediaRecorder.start();
-                micBtn.classList.add('active');
-                normalInput.style.display = 'none';
-                recordUI.style.display = 'flex';
-                
-                seconds = 0;
-                document.getElementById('record-time').innerText = `0:00`;
-                recordTimer = setInterval(() => {
-                    seconds++;
-                    document.getElementById('record-time').innerText = `0:${seconds < 10 ? '0'+seconds : seconds}`;
-                    document.getElementById('record-wave').style.width = (Math.random() * 100) + '%';
-                }, 1000);
-            } catch (err) {
-                alert("Ошибка: микрофон не доступен. Проверь разрешения в браузере.");
-            }
+    micBtn.onmouseup = micBtn.ontouchend = () => {
+        if(isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+            micBtn.classList.remove('recording');
         }
+    };
 
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-                micBtn.classList.remove('active');
-                normalInput.style.display = 'flex';
-                recordUI.style.display = 'none';
-                clearInterval(recordTimer);
-                // Останавливаем микрофон после записи
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            }
+    function saveVoice() {
+        const blob = new Blob(audioChunks, { type: 'audio/mp3' });
+        const url = URL.createObjectURL(blob);
+        const container = document.getElementById('messages-container');
+        const id = Date.now();
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble out';
+        bubble.innerHTML = `
+            <div class="voice-msg">
+                <div class="play-btn" onclick="playAudio('${url}', this, ${id})">▶</div>
+                <div class="progress-container"><div class="progress-bar" id="pb-${id}"></div></div>
+            </div>`;
+        container.appendChild(bubble);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function playAudio(url, btn, id) {
+        const audio = new Audio(url);
+        const pb = document.getElementById('pb-' + id);
+        if(btn.innerText === '▶') {
+            audio.play();
+            btn.innerText = 'II';
+            audio.ontimeupdate = () => pb.style.width = (audio.currentTime/audio.duration)*100 + '%';
+            audio.onended = () => { btn.innerText = '▶'; pb.style.width = '0%'; };
         }
+    }
 
-        function renderVoiceMessage(url, duration) {
-            const chat = document.getElementById('chat');
-            const msgId = Date.now();
-            const bubble = document.createElement('div');
-            bubble.className = 'bubble out';
-            bubble.innerHTML = `
-                <div class="voice-player">
-                    <div class="play-btn" id="btn-${msgId}" onclick="playVoice('${url}', '${msgId}')">▶</div>
-                    <div class="wave">
-                        <div class="wave-fill" id="fill-${msgId}" style="width: 0%; height: 100%; background: white;"></div>
-                    </div>
-                    <span style="font-size:12px;" id="time-${msgId}">0:${duration < 10 ? '0'+duration : duration}</span>
-                </div>
-            `;
-            chat.appendChild(bubble);
-            chat.scrollTop = chat.scrollHeight;
+    // Текстовые сообщения
+    document.getElementById('text-input').onkeypress = (e) => {
+        if(e.key === 'Enter' && e.target.value.trim() !== "") {
+            const container = document.getElementById('messages-container');
+            const b = document.createElement('div');
+            b.className = 'bubble out';
+            b.innerText = e.target.value;
+            container.appendChild(b);
+            e.target.value = "";
+            container.scrollTop = container.scrollHeight;
         }
+    };
 
-        function playVoice(url, id) {
-            const btn = document.getElementById('btn-' + id);
-            const fill = document.getElementById('fill-' + id);
-
-            // Если уже что-то играет, остановим
-            if (currentAudio) {
-                currentAudio.pause();
-                if (currentAudio.btn) currentAudio.btn.innerText = '▶';
-            }
-
-            const audio = new Audio(url);
-            currentAudio = audio;
-            currentAudio.btn = btn;
-
-            audio.play().then(() => {
-                btn.innerText = 'II';
-            }).catch(e => console.error("Ошибка воспроизведения:", e));
-
-            audio.ontimeupdate = () => {
-                const progress = (audio.currentTime / audio.duration) * 100;
-                fill.style.width = progress + '%';
-            };
-
-            audio.onended = () => {
-                btn.innerText = '▶';
-                fill.style.width = '0%';
-            };
-        }
-
-        document.getElementById('msg-input').onkeypress = function(e) {
-            if (e.key === 'Enter' && this.value.trim() !== "") {
-                const chat = document.getElementById('chat');
-                chat.innerHTML += `<div class="bubble out">${this.value}</div>`;
-                this.value = "";
-                chat.scrollTop = chat.scrollHeight;
-            }
-        };
+    // Простой звук
+    function sfx(f) {
+        const ctx = new AudioContext();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = f;
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + 0.5);
+    }
 </script>
 </body>
 </html>
