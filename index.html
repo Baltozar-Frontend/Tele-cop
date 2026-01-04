@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Pro - Voice & Gifts</title>
+    <style>
+        :root {
+            --tg-blue: #24A1DE;
+            --tg-bg: #0e1621;
+            --tg-dark: #17212b;
+            --tg-msg-out: #2b5278;
+            --tg-msg-in: #182533;
+            --tg-stars: #f9d949;
+        }
+
+        body {
+            margin: 0; font-family: -apple-system, system-ui, Roboto, sans-serif;
+            background-color: var(--tg-bg); color: white; overflow: hidden;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: var(--tg-dark); padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10;
+        }
+        .avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #50a2e3, #24a1de); border-radius: 50%; }
+        .star-badge {
+            background: rgba(249, 217, 73, 0.15); border: 1px solid var(--tg-stars);
+            padding: 5px 12px; border-radius: 20px; color: var(--tg-stars);
+            font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .star-badge:active { transform: scale(1.1); }
+
+        /* Chat Area */
+        #chat {
+            flex: 1; overflow-y: auto; padding: 15px;
+            background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-attachment: fixed; display: flex; flex-direction: column;
+        }
+
+        .bubble {
+            max-width: 75%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px;
+            font-size: 15px; line-height: 1.4; position: relative;
+            animation: fadeIn 0.2s ease;
+        }
+        .out { background: var(--tg-msg-out); align-self: flex-end; border-bottom-right-radius: 4px; }
+        .in { background: var(--tg-msg-in); align-self: flex-start; border-bottom-left-radius: 4px; }
+
+        /* Voice Message UI */
+        .voice-player { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+        .play-btn { width: 30px; height: 30px; background: white; border-radius: 50%; display: flex; 
+                    align-items: center; justify-content: center; color: var(--tg-msg-out); cursor: pointer; }
+        .wave { flex: 1; height: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; position: relative; }
+        .wave-fill { height: 100%; background: white; width: 0%; }
+
+        /* Input Bar */
+        .input-panel {
+            background: var(--tg-dark); padding: 8px 12px; display: flex; align-items: center; gap: 12px;
+        }
+        .input-wrap {
+            flex: 1; background: var(--tg-bg); border-radius: 20px; padding: 8px 15px;
+            display: flex; align-items: center;
+        }
+        #msg-input { background: none; border: none; color: white; flex: 1; outline: none; font-size: 16px; }
+        
+        /* Recording Overlay */
+        #record-ui { display: none; flex: 1; align-items: center; color: #aaa; gap: 10px; }
+        .dot { width: 10px; height: 10px; background: red; border-radius: 50%; animation: blink 0.8s infinite; }
+
+        .mic-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; 
+                   background: none; border: none; color: var(--tg-blue); font-size: 24px; cursor: pointer; }
+        .mic-btn.active { color: red; transform: scale(1.3); }
+
+        /* Gifts Modal */
+        #modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+            padding: 20px; backdrop-filter: blur(5px);
+        }
+        .gift-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .gift-card { background: var(--tg-dark); border-radius: 15px; padding: 15px; text-align: center; border: 1px solid #333; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="avatar"></div>
+            <div>
+                <b style="display: block;">Gemini Clone</b>
+                <span style="font-size: 13px; color: var(--tg-blue);">online</span>
+            </div>
+        </div>
+        <div class="star-badge" onclick="getStars()">⭐ <span id="stars-val">500</span></div>
+    </header>
+
+    <div id="chat">
+        <div class="bubble in">Привет! Это 100% копия. Зажми микрофон и запиши настоящий голос! 🎤</div>
+    </div>
+
+    <div class="input-panel">
+        <div style="font-size: 24px; cursor: pointer;" onclick="showGifts()">🎁</div>
+        <div class="input-wrap" id="normal-input">
+            <input type="text" id="msg-input" placeholder="Message">
+        </div>
+        <div id="record-ui">
+            <div class="dot"></div>
+            <span id="record-time">0:00</span>
+            <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                <div id="record-wave" style="height: 100%; background: red; width: 0%; transition: 0.1s;"></div>
+            </div>
+        </div>
+        <button class="mic-btn" id="mic-btn">🎤</button>
+    </div>
+
+    <div id="modal">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">Gifts Store</h2>
+            <button onclick="hideGifts()" style="background:none; border:none; color:white; font-size: 24px;">✕</button>
+        </div>
+        <div class="gift-grid">
+            <div class="gift-card" onclick="buyGift('Gold Star', 250, 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png')">
+                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" width="80">
+                <p>Star</p><b style="color:var(--tg-stars)">250 ⭐</b>
+            </div>
+            <div class="gift-card" onclick="buyGift('Rocket NFT', 5000, 'https://cdn-icons-png.flaticon.com/512/1356/1356479.png')">
+                <img src="https://cdn-icons-png.flaticon.com/512/1356/1356479.png" width="80">
+                <p>Rocket</p><b style="color:var(--tg-stars)">5k ⭐</b>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stars = 500;
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordTimer;
+        let seconds = 0;
+
+        // --- Звезды ---
+        function getStars() {
+            stars += 5000;
+            document.getElementById('stars-val').innerText = stars;
+        }
+
+        // --- Подарки ---
+        function showGifts() { document.getElementById('modal').style.display = 'block'; }
+        function hideGifts() { document.getElementById('modal').style.display = 'none'; }
+        
+        function buyGift(name, price, img) {
+            if (stars < price) return alert("Нужно больше звезд!");
+            stars -= price;
+            document.getElementById('stars-val').innerText = stars;
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `
+                <div class="bubble out" style="text-align:center; background: rgba(249,217,73,0.1); border: 1px solid var(--tg-stars);">
+                    <img src="${img}" width="100"><br>
+                    <b>${name} Gift</b><br>
+                    <small>Sent for ${price} stars</small>
+                </div>`;
+            hideGifts();
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // --- РЕАЛЬНЫЕ ГОЛОСОВЫЕ ---
+        const micBtn = document.getElementById('mic-btn');
+        const recordUI = document.getElementById('record-ui');
+        const normalInput = document.getElementById('normal-input');
+
+        micBtn.addEventListener('mousedown', startRecording);
+        micBtn.addEventListener('mouseup', stopRecording);
+        micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
+        micBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = sendVoiceMessage;
+
+                mediaRecorder.start();
+                micBtn.classList.add('active');
+                normalInput.style.display = 'none';
+                recordUI.style.display = 'flex';
+                
+                seconds = 0;
+                recordTimer = setInterval(() => {
+                    seconds++;
+                    document.getElementById('record-time').innerText = `0:${seconds < 10 ? '0'+seconds : seconds}`;
+                    document.getElementById('record-wave').style.width = (Math.random() * 100) + '%';
+                }, 1000);
+            } catch (err) {
+                alert("Доступ к микрофону отклонен!");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                micBtn.classList.remove('active');
+                normalInput.style.display = 'flex';
+                recordUI.style.display = 'none';
+                clearInterval(recordTimer);
+            }
+        }
+
+        function sendVoiceMessage() {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const chat = document.getElementById('chat');
+            
+            const msgId = Date.now();
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble out';
+            bubble.innerHTML = `
+                <div class="voice-player">
+                    <div class="play-btn" onclick="playVoice('${audioUrl}', this)">▶</div>
+                    <div class="wave"><div class="wave-fill" id="fill-${msgId}"></div></div>
+                    <span style="font-size:12px;">0:${seconds < 10 ? '0'+seconds : seconds}</span>
+                </div>
+            `;
+            chat.appendChild(bubble);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function playVoice(url, btn) {
+            const audio = new Audio(url);
+            if (btn.innerText === '▶') {
+                audio.play();
+                btn.innerText = 'II';
+                audio.onended = () => btn.innerText = '▶';
+            }
+        }
+
+        // Отправка текста
+        document.getElementById('msg-input').onkeypress = function(e) {
+            if (e.key === 'Enter' && this.value.trim() !== "") {
+                const chat = document.getElementById('chat');
+                chat.innerHTML += `<div class="bubble out">${this.value}</div>`;
+                this.value = "";
+                chat.scrollTop = chat.scrollHeight;
+            }
+        };
+    </script>
+</body>
+</html>
