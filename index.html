@@ -136,19 +136,18 @@
     </div>
 
     <script>
-        let stars = 500;
+                let stars = 500;
         let mediaRecorder;
         let audioChunks = [];
         let recordTimer;
         let seconds = 0;
+        let currentAudio = null; // Для контроля текущего проигрывания
 
-        // --- Звезды ---
         function getStars() {
             stars += 5000;
             document.getElementById('stars-val').innerText = stars;
         }
 
-        // --- Подарки ---
         function showGifts() { document.getElementById('modal').style.display = 'block'; }
         function hideGifts() { document.getElementById('modal').style.display = 'none'; }
         
@@ -167,7 +166,7 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
-        // --- РЕАЛЬНЫЕ ГОЛОСОВЫЕ ---
+        // --- РЕАЛЬНЫЕ ГОЛОСОВЫЕ С ФИКСОМ ВОСПРОИЗВЕДЕНИЯ ---
         const micBtn = document.getElementById('mic-btn');
         const recordUI = document.getElementById('record-ui');
         const normalInput = document.getElementById('normal-input');
@@ -178,13 +177,20 @@
         micBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecording(); });
 
         async function startRecording() {
+            audioChunks = [];
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
 
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = sendVoiceMessage;
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    renderVoiceMessage(audioUrl, seconds);
+                };
 
                 mediaRecorder.start();
                 micBtn.classList.add('active');
@@ -192,13 +198,14 @@
                 recordUI.style.display = 'flex';
                 
                 seconds = 0;
+                document.getElementById('record-time').innerText = `0:00`;
                 recordTimer = setInterval(() => {
                     seconds++;
                     document.getElementById('record-time').innerText = `0:${seconds < 10 ? '0'+seconds : seconds}`;
                     document.getElementById('record-wave').style.width = (Math.random() * 100) + '%';
                 }, 1000);
             } catch (err) {
-                alert("Доступ к микрофону отклонен!");
+                alert("Ошибка: микрофон не доступен. Проверь разрешения в браузере.");
             }
         }
 
@@ -209,38 +216,58 @@
                 normalInput.style.display = 'flex';
                 recordUI.style.display = 'none';
                 clearInterval(recordTimer);
+                // Останавливаем микрофон после записи
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
             }
         }
 
-        function sendVoiceMessage() {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-            const audioUrl = URL.createObjectURL(audioBlob);
+        function renderVoiceMessage(url, duration) {
             const chat = document.getElementById('chat');
-            
             const msgId = Date.now();
             const bubble = document.createElement('div');
             bubble.className = 'bubble out';
             bubble.innerHTML = `
                 <div class="voice-player">
-                    <div class="play-btn" onclick="playVoice('${audioUrl}', this)">▶</div>
-                    <div class="wave"><div class="wave-fill" id="fill-${msgId}"></div></div>
-                    <span style="font-size:12px;">0:${seconds < 10 ? '0'+seconds : seconds}</span>
+                    <div class="play-btn" id="btn-${msgId}" onclick="playVoice('${url}', '${msgId}')">▶</div>
+                    <div class="wave">
+                        <div class="wave-fill" id="fill-${msgId}" style="width: 0%; height: 100%; background: white;"></div>
+                    </div>
+                    <span style="font-size:12px;" id="time-${msgId}">0:${duration < 10 ? '0'+duration : duration}</span>
                 </div>
             `;
             chat.appendChild(bubble);
             chat.scrollTop = chat.scrollHeight;
         }
 
-        function playVoice(url, btn) {
-            const audio = new Audio(url);
-            if (btn.innerText === '▶') {
-                audio.play();
-                btn.innerText = 'II';
-                audio.onended = () => btn.innerText = '▶';
+        function playVoice(url, id) {
+            const btn = document.getElementById('btn-' + id);
+            const fill = document.getElementById('fill-' + id);
+
+            // Если уже что-то играет, остановим
+            if (currentAudio) {
+                currentAudio.pause();
+                if (currentAudio.btn) currentAudio.btn.innerText = '▶';
             }
+
+            const audio = new Audio(url);
+            currentAudio = audio;
+            currentAudio.btn = btn;
+
+            audio.play().then(() => {
+                btn.innerText = 'II';
+            }).catch(e => console.error("Ошибка воспроизведения:", e));
+
+            audio.ontimeupdate = () => {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                fill.style.width = progress + '%';
+            };
+
+            audio.onended = () => {
+                btn.innerText = '▶';
+                fill.style.width = '0%';
+            };
         }
 
-        // Отправка текста
         document.getElementById('msg-input').onkeypress = function(e) {
             if (e.key === 'Enter' && this.value.trim() !== "") {
                 const chat = document.getElementById('chat');
@@ -249,6 +276,6 @@
                 chat.scrollTop = chat.scrollHeight;
             }
         };
-    </script>
+</script>
 </body>
 </html>
